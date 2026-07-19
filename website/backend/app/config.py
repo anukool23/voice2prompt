@@ -44,6 +44,10 @@ class Settings:
     download_url_windows: str = os.environ.get(
         "DOWNLOAD_URL_WINDOWS", "https://github.com/anukool23/voice2prompt/releases"
     )
+    # Releases page shown as the "Go to Release" option after emailing a link.
+    release_url: str = os.environ.get(
+        "RELEASE_URL", "https://github.com/anukool23/voice2prompt/releases"
+    )
 
     # --- CORS: comma-separated list of allowed origins, or "*" for all ---
     _cors_origins_raw: str = os.environ.get("CORS_ORIGINS", "*")

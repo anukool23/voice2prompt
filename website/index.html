@@ -358,6 +358,39 @@
   .success-box p{ font-size:13.5px; color:#d6f5e8; }
   .success-box b{ color:#fff; }
 
+  /* ---------- Post-download popup ---------- */
+  .dl-modal-overlay{
+    display:none; position:fixed; inset:0; z-index:200; padding:20px;
+    align-items:center; justify-content:center;
+    background: rgba(4,4,10,0.72); backdrop-filter: blur(6px);
+    animation: dlFadeIn .18s ease;
+  }
+  .dl-modal-overlay.show{ display:flex; }
+  .dl-modal{
+    position:relative; width:100%; max-width:420px; text-align:center;
+    background: var(--bg-2); border:1px solid var(--border); border-radius:20px;
+    padding:40px 32px 32px; box-shadow: 0 30px 70px -20px rgba(0,0,0,0.65);
+    animation: dlPopIn .22s cubic-bezier(.2,.9,.3,1.2);
+  }
+  .dl-modal-close{
+    position:absolute; top:14px; right:14px; width:30px; height:30px; border-radius:9px;
+    background: transparent; border:1px solid transparent; color: var(--text-dim);
+    font-size:20px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .dl-modal-close:hover{ background: var(--card-hover); border-color: var(--border); color: var(--text); }
+  .dl-modal-icon{
+    width:52px; height:52px; border-radius:50%; margin:0 auto 18px;
+    background: rgba(52,211,153,0.12); border:1px solid rgba(52,211,153,0.35);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .dl-modal-icon svg{ width:24px; height:24px; color: var(--green); }
+  .dl-modal h3{ font-size:19px; margin-bottom:10px; }
+  .dl-modal p{ font-size:13.5px; color: var(--text-dim); margin-bottom:26px; line-height:1.55; }
+  .dl-modal-actions{ display:flex; flex-direction:column; gap:10px; }
+  .dl-modal-actions .btn{ display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+  @keyframes dlFadeIn{ from{ opacity:0; } to{ opacity:1; } }
+  @keyframes dlPopIn{ from{ opacity:0; transform: translateY(10px) scale(.97); } to{ opacity:1; transform:none; } }
+
   /* ---------- Footer ---------- */
   footer{ padding: 60px 0 34px; border-top:1px solid var(--border); }
   .footer-grid{ display:grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap:40px; margin-bottom:48px; }
@@ -690,6 +723,22 @@
     </div>
   </section>
 
+  <!-- Post-download popup -->
+  <div class="dl-modal-overlay" id="dlModalOverlay">
+    <div class="dl-modal">
+      <button type="button" class="dl-modal-close" id="dlModalClose" aria-label="Close">&times;</button>
+      <div class="dl-modal-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+      <h3 id="dlModalTitle">Email sent successfully</h3>
+      <p id="dlModalBody">We've sent the download link to your inbox. Didn't get it? Check spam, or use the links below.</p>
+      <div class="dl-modal-actions">
+        <a href="https://github.com/anukool23/voice2prompt/releases" target="_blank" rel="noopener" class="btn btn-primary btn-block" id="dlModalRelease">Go to Release<svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></a>
+        <a href="https://github.com/anukool23/voice2prompt/releases" target="_blank" rel="noopener" class="btn btn-ghost btn-block" id="dlModalDownload">Download Anyway<svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></a>
+      </div>
+    </div>
+  </div>
+
   <!-- INSTALL GUIDE (macOS) -->
   <section id="install-steps">
     <div class="wrap">
@@ -970,8 +1019,59 @@
     });
   }
 
-  wireForm('downloadForm', 'downloadSuccess', 'downloadEmailEcho');
   wireForm('newsletterForm', 'newsletterSuccess', 'newsletterEmailEcho');
+
+  // ---- Download form: send + show the "email sent" popup ----
+  // NOTE: this static page isn't wired to the live FastAPI backend (it never
+  // has been — see the Next.js port in frontend/ for the real, API-connected
+  // version). These are the same fallback URLs the backend defaults to when
+  // DOWNLOAD_URL_MAC / DOWNLOAD_URL_WINDOWS / RELEASE_URL aren't set.
+  const RELEASE_URL = 'https://github.com/anukool23/voice2prompt/releases';
+  const DOWNLOAD_URL_MAC = 'https://github.com/anukool23/voice2prompt/releases';
+  const DOWNLOAD_URL_WINDOWS = 'https://github.com/anukool23/voice2prompt/releases';
+
+  const dlModalOverlay = document.getElementById('dlModalOverlay');
+  const dlModalTitle = document.getElementById('dlModalTitle');
+  const dlModalBody = document.getElementById('dlModalBody');
+  const dlModalRelease = document.getElementById('dlModalRelease');
+  const dlModalDownload = document.getElementById('dlModalDownload');
+  const dlModalClose = document.getElementById('dlModalClose');
+
+  function openDownloadModal({ platform, email, emailSent, downloadUrl, releaseUrl }){
+    dlModalTitle.textContent = emailSent === false ? 'Request received' : 'Email sent successfully';
+    dlModalBody.textContent = emailSent === false
+      ? `We saved your request, but the confirmation email to ${email} may be delayed. You can grab the build directly below in the meantime.`
+      : `We've sent the ${platform === 'mac' ? 'macOS' : 'Windows'} download link to ${email}. Didn't get it? Check spam, or use the links below.`;
+    dlModalRelease.href = releaseUrl || RELEASE_URL;
+    dlModalDownload.href = downloadUrl || (platform === 'mac' ? DOWNLOAD_URL_MAC : DOWNLOAD_URL_WINDOWS);
+    dlModalOverlay.classList.add('show');
+  }
+  function closeDownloadModal(){ dlModalOverlay.classList.remove('show'); }
+  dlModalClose.addEventListener('click', closeDownloadModal);
+  dlModalOverlay.addEventListener('click', (e) => { if(e.target === dlModalOverlay) closeDownloadModal(); });
+
+  const downloadForm = document.getElementById('downloadForm');
+  const downloadSuccess = document.getElementById('downloadSuccess');
+  const downloadEmailEcho = document.getElementById('downloadEmailEcho');
+  if(downloadForm){
+    downloadForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      const emailVal = document.getElementById('downloadEmail').value;
+      const platform = platformField.value === 'win' ? 'windows' : 'mac';
+
+      fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: encode({ 'form-name': 'download', platform, email: emailVal })
+      }).catch(() => { /* static preview / no backend wired here — fail silently */ })
+      .finally(() => {
+        downloadEmailEcho.textContent = emailVal;
+        downloadForm.style.display = 'none';
+        downloadSuccess.classList.add('show');
+        openDownloadModal({ platform, email: emailVal, emailSent: true });
+      });
+    });
+  }
 </script>
 
 </body>

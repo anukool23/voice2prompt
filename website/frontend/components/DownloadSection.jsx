@@ -13,21 +13,31 @@ export default function DownloadSection() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
+  const [result, setResult] = useState(null); // { downloadUrl, releaseUrl, emailSent }
+  const [showModal, setShowModal] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
+    let data = null;
     try {
-      await fetch(`${API_BASE}/api/download`, {
+      const res = await fetch(`${API_BASE}/api/download`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, type: platform }),
       });
+      data = await res.json().catch(() => null);
     } catch {
-      // Backend not wired up yet — fail silently, still confirm to the user.
+      // Backend unreachable — fail silently, still confirm to the user below.
     } finally {
       setSubmittedEmail(email);
       setSubmitted(true);
+      setResult(data);
+      setShowModal(true);
     }
+  }
+
+  function closeModal() {
+    setShowModal(false);
   }
 
   return (
@@ -126,6 +136,47 @@ export default function DownloadSection() {
           </div>
         </Reveal>
       </div>
+
+      {showModal && (
+        <div className="dl-modal-overlay" onClick={closeModal}>
+          <div className="dl-modal" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="dl-modal-close" onClick={closeModal} aria-label="Close">
+              &times;
+            </button>
+            <div className="dl-modal-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+            </div>
+            <h3>{result?.emailSent === false ? "Request received" : "Email sent successfully"}</h3>
+            <p>
+              {result?.emailSent === false
+                ? `We saved your request, but the confirmation email to ${submittedEmail} may be delayed. You can grab the build directly below in the meantime.`
+                : `We've sent the ${platform === "mac" ? "macOS" : "Windows"} download link to ${submittedEmail}. Didn't get it? Check spam, or use the links below.`}
+            </p>
+            <div className="dl-modal-actions">
+              <a
+                href={result?.releaseUrl || GITHUB_RELEASES_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary btn-block"
+                onClick={() => trackClick("github", "download_popup")}
+              >
+                Go to Release<ExternalIcon />
+              </a>
+              <a
+                href={result?.downloadUrl || GITHUB_RELEASES_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-ghost btn-block"
+                onClick={() => trackClick("download", "download_popup")}
+              >
+                Download Anyway<ExternalIcon />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

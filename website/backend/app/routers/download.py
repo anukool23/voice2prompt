@@ -55,6 +55,7 @@ def request_download(payload: DownloadIn):
     return {
         "ok": True,
         "downloadUrl": download_url,
+        "releaseUrl": settings.release_url,
         "emailSent": email_sent,
         "emailError": email_error,
     }
