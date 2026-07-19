@@ -1,4 +1,4 @@
-const SITE_URL = "https://voice2prompt.app";
+const SITE_URL = "https://voice2prompt.dev";
 
 export default function robots() {
   return {

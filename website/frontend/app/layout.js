@@ -1,9 +1,7 @@
 import "./globals.css";
 import Analytics from "@/components/Analytics";
 
-// TODO: swap this for your real production domain once you deploy (Vercel gives you
-// a *.vercel.app URL by default) — it drives canonical links, OG/Twitter tags and the sitemap.
-const SITE_URL = "https://voice2prompt.app";
+const SITE_URL = "https://voice2prompt.dev";
 
 export const metadata = {
   metadataBase: new URL(SITE_URL),

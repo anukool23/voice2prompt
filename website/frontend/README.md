@@ -39,9 +39,9 @@ calls, all under `NEXT_PUBLIC_API_URL` (see `.env.local.example` — copy it to
   every Download / GitHub / Developer link in `Header`, `Hero`, `Footer`, and
   `DownloadSection` (see `lib/analytics.js`).
 
-## Before you deploy
+## Deployed at
 
-- `app/layout.js`, `app/sitemap.js`, `app/robots.js` hardcode a placeholder
-  `https://voice2prompt.app` — swap in your real domain.
-- Replace the placeholder GitHub org (`github.com/anukool23/voice2prompt`) throughout
-  `components/` with your actual repo URL.
+`app/layout.js`, `app/sitemap.js`, `app/robots.js` point at the live domain,
+[`voice2prompt.dev`](https://voice2prompt.dev) — update `SITE_URL` in those
+three files if that ever changes. `components/` already links to the real
+repo, `github.com/anukool23/voice2prompt`.

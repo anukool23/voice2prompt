@@ -1,8 +1,9 @@
 # Voice2Prompt
 
-An open-source, on-device voice-dictation tool for macOS + Windows (a Wispr Flow
-equivalent). Hold a hotkey, speak, and the transcribed text is pasted into whatever
-field you're focused on — no network calls, no per-word API cost.
+**[voice2prompt.dev](https://voice2prompt.dev)** · An open-source, on-device
+voice-dictation tool for macOS + Windows. Hold a hotkey, speak, and the
+transcribed text is pasted into whatever field you're focused on — no network
+calls, no per-word API cost.
 
 **Stack:** Go engine + whisper.cpp (STT sidecar) + Ollama (LLM cleanup, Phase 2) +
 Wails/React UI (Phase 3). See
