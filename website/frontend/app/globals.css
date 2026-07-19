@@ -140,11 +140,14 @@ h1 .grad{
   padding: 12px 16px; border-bottom:1px solid var(--border);
   background: rgba(255,255,255,0.02);
 }
-.terminal-bar span{ width:10px; height:10px; border-radius:50%; }
+.terminal-bar span:not(.terminal-title){ width:10px; height:10px; border-radius:50%; flex-shrink:0; }
 .terminal-bar span:nth-child(1){ background:#ff5f57; }
 .terminal-bar span:nth-child(2){ background:#febc2e; }
 .terminal-bar span:nth-child(3){ background:#28c840; }
-.terminal-title{ margin-left:8px; font-family: var(--font-mono); font-size:12px; color:var(--text-dimmer); }
+.terminal-title{
+  margin-left:8px; font-family: var(--font-mono); font-size:12px; color:var(--text-dimmer);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;
+}
 .terminal-body{ padding: 22px 22px 26px; font-family: var(--font-mono); font-size:13.5px; color:#c9c9dd; min-height: 250px; }
 .terminal-body .prompt-line{ color: var(--text-dimmer); margin-bottom: 14px; }
 .terminal-body .prompt-line .arrow{ color: var(--green); }
@@ -202,6 +205,13 @@ h2{ font-size: 36px; letter-spacing:-1px; margin-bottom:14px; font-weight:800; }
   position:absolute; top:20px; right:20px; font-family:var(--font-mono); font-size:10.5px;
   padding:3px 9px; border-radius:999px; background: rgba(139,92,246,0.12); color:#c4b5fd; border:1px solid rgba(139,92,246,0.3);
 }
+.trigger-keys{ display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }
+.trigger-keys span{
+  font-family: var(--font-mono); font-size:11px; color:#e8e8f5; line-height:1.3;
+  background: rgba(255,255,255,0.06); border:1px solid var(--border);
+  padding:4px 9px; border-radius:7px; white-space:nowrap;
+}
+.trigger-keys span.is-fn{ color:#c4b5fd; border-color: rgba(139,92,246,0.35); background: rgba(139,92,246,0.12); }
 
 /* ---------- Architecture ---------- */
 .arch{
@@ -294,6 +304,49 @@ input[type=email]::placeholder{ color: var(--text-dimmer); }
 .mt-tight{ margin-bottom:2px; }
 .hl-white{ color:#e8e8f5; }
 .code-mono{ font-family: var(--font-mono); }
+
+/* ---------- Install guide ---------- */
+.install-card{ background: var(--card); border:1px solid var(--border); border-radius:20px; padding:44px 36px; }
+.install-grid{ display:flex; flex-direction:column; gap:14px; }
+.install-step{ display:grid; grid-template-columns:40px 1fr; gap:18px; align-items:start; background: rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:14px; padding:20px 22px; }
+.install-step-num{ width:36px; height:36px; border-radius:50%; background: var(--grad); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-family:var(--font-mono); font-size:14.5px; flex-shrink:0; box-shadow: 0 8px 18px -8px rgba(139,92,246,0.6); }
+.install-step h4{ font-size:15.5px; margin-bottom:6px; }
+.install-step p{ font-size:13.5px; color: var(--text-dim); }
+.install-step p + p{ margin-top:8px; }
+.install-step code{ font-family: var(--font-mono); font-size:12.5px; background: rgba(255,255,255,0.08); padding:2px 7px; border-radius:6px; color:#e8e8f5; }
+.install-step .sub{ margin-top:10px; padding-left:18px; border-left:2px solid var(--border); display:flex; flex-direction:column; gap:6px; }
+.install-step .sub p{ font-size:13px; }
+.install-highlight{ color: var(--text); }
+.install-screens{ display:flex; gap:16px; flex-wrap:wrap; margin-top:16px; }
+
+/* Recreations of the actual macOS dialogs (not screenshots) so the guide reads
+   visually without shipping large image assets. */
+.mac-mock{
+  width:200px; background:#f4f3f1; border-radius:14px; padding:16px;
+  box-shadow: 0 20px 40px -16px rgba(0,0,0,0.5); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  color:#1c1c1e; flex-shrink:0;
+}
+.mac-mock-wide{ width:300px; }
+.mac-mock-icon{ font-size:26px; line-height:1; margin-bottom:8px; }
+.mac-mock-title{ font-size:13px; font-weight:700; margin-bottom:6px; }
+.mac-mock-body{ font-size:11px; line-height:1.4; color:#48484a; margin-bottom:12px; }
+.mac-mock-buttons{ display:flex; gap:8px; justify-content:flex-end; }
+.mac-mock-buttons-stack{ display:flex; flex-direction:column; gap:6px; }
+.mac-btn{
+  font-size:11px; padding:5px 12px; border-radius:7px; background:#e4e3e1; color:#1c1c1e;
+  display:inline-block; text-align:center;
+}
+.mac-btn.full{ width:100%; box-sizing:border-box; }
+.mac-btn-primary{ background:#2563EB; color:#fff; }
+.mac-mock-row{
+  display:flex; flex-direction:column; align-items:flex-start; gap:8px;
+  font-size:11px; padding:10px 0; border-top:1px solid #e0dfdd;
+}
+.mac-mock-row:first-child{ border-top:none; padding-top:0; }
+.mac-mock-row > span:first-child{ font-weight:500; }
+.mac-mock-pill{ background:#e4e3e1; padding:3px 8px; border-radius:6px; font-size:10.5px; white-space:nowrap; }
+.install-screens figure{ margin:0; display:flex; flex-direction:column; align-items:center; }
+.install-screens figcaption{ font-size:11.5px; color: var(--text-dimmer); margin-top:8px; text-align:center; max-width:220px; }
 
 .success-box{
   display:none; align-items:flex-start; gap:12px; padding:16px 18px; border-radius:12px;

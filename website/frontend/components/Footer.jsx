@@ -42,6 +42,7 @@ export default function Footer() {
             <h5>Docs</h5>
             <a href="#how-it-works">Architecture</a>
             <a href="#roadmap">Roadmap</a>
+            <a href="#install-steps">Install &amp; permissions</a>
             <a href={`${GITHUB_URL}#readme`} target="_blank" rel="noopener noreferrer">README<ExternalIcon /></a>
             <a href={`${GITHUB_URL}/blob/main/flow-clone-implementation-plan.md`} target="_blank" rel="noopener noreferrer">
               Implementation plan<ExternalIcon />

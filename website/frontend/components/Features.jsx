@@ -39,8 +39,16 @@ const FEATURES = [
     ),
   },
   {
-    title: "Fn-key or hotkey trigger",
-    desc: "Hold the 🌐 Fn key for push-to-talk, double-tap for hands-free, or bind a classic hotkey chord like Ctrl+Option+Space — no extra permission required.",
+    title: "Six ways to trigger it",
+    desc: "Hold the 🌐 Fn key for push-to-talk, double-tap to lock into hands-free — or bind one of five hotkey chords instead, no extra permission required. Pick whichever fits your workflow in Settings → Trigger.",
+    keys: [
+      { label: "Fn / 🌐 — hold, double-tap to lock", isFn: true },
+      { label: "Ctrl+Option+Space" },
+      { label: "Ctrl+Shift+Space" },
+      { label: "Cmd+Option+Space" },
+      { label: "F8" },
+      { label: "F9" },
+    ],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
         <rect x="4" y="8" width="16" height="12" rx="2" />
@@ -77,6 +85,15 @@ export default function Features() {
               <div className="card-icon">{f.icon}</div>
               <h3>{f.title}</h3>
               <p>{f.desc}</p>
+              {f.keys && (
+                <div className="trigger-keys">
+                  {f.keys.map((k) => (
+                    <span key={k.label} className={k.isFn ? "is-fn" : undefined}>
+                      {k.label}
+                    </span>
+                  ))}
+                </div>
+              )}
             </Reveal>
           ))}
         </div>

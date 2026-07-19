@@ -9,7 +9,10 @@ deployed to Vercel as a Python serverless function.
   as `{ email, created_at }`. Subscribing twice with the same email is a no-op.
 - `POST /api/download` — `{ "email": "...", "type": "mac" | "windows" }` →
   records the request in `download_requests`, then emails the current download
-  link for that platform via Resend.
+  link for that platform via Resend. For `mac`, the email also includes the
+  Gatekeeper/permissions walkthrough (see `app/email_templates.py`) so the
+  security prompt doesn't blindside anyone — same steps as the site's
+  `#install-steps` section and the README's "Installing the app" section.
 - `POST /api/analytics` — `{ "event": "pageview" | "click", "target"?, "location"?, "page"?, "referrer"? }`
   → inserts into `analytics_events`. Fire one `pageview` per site visit, and one
   `click` whenever someone clicks a Download / GitHub / Developer link anywhere

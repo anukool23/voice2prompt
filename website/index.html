@@ -154,11 +154,14 @@
     padding: 12px 16px; border-bottom:1px solid var(--border);
     background: rgba(255,255,255,0.02);
   }
-  .terminal-bar span{ width:10px; height:10px; border-radius:50%; }
+  .terminal-bar span:not(.terminal-title){ width:10px; height:10px; border-radius:50%; flex-shrink:0; }
   .terminal-bar span:nth-child(1){ background:#ff5f57; }
   .terminal-bar span:nth-child(2){ background:#febc2e; }
   .terminal-bar span:nth-child(3){ background:#28c840; }
-  .terminal-title{ margin-left:8px; font-family: var(--font-mono); font-size:12px; color:var(--text-dimmer); }
+  .terminal-title{
+    margin-left:8px; font-family: var(--font-mono); font-size:12px; color:var(--text-dimmer);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;
+  }
   .terminal-body{ padding: 22px 22px 26px; font-family: var(--font-mono); font-size:13.5px; color:#c9c9dd; min-height: 250px; }
   .terminal-body .prompt-line{ color: var(--text-dimmer); margin-bottom: 14px; }
   .terminal-body .prompt-line .arrow{ color: var(--green); }
@@ -216,6 +219,13 @@
     position:absolute; top:20px; right:20px; font-family:var(--font-mono); font-size:10.5px;
     padding:3px 9px; border-radius:999px; background: rgba(139,92,246,0.12); color:#c4b5fd; border:1px solid rgba(139,92,246,0.3);
   }
+  .trigger-keys{ display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }
+  .trigger-keys span{
+    font-family: var(--font-mono); font-size:11px; color:#e8e8f5; line-height:1.3;
+    background: rgba(255,255,255,0.06); border:1px solid var(--border);
+    padding:4px 9px; border-radius:7px; white-space:nowrap;
+  }
+  .trigger-keys span.is-fn{ color:#c4b5fd; border-color: rgba(139,92,246,0.35); background: rgba(139,92,246,0.12); }
 
   /* ---------- Architecture ---------- */
   .arch{
@@ -296,6 +306,48 @@
 
   .fine-print{ font-size:12px; color: var(--text-dimmer); margin-top:12px; }
   .fine-print a{ color: var(--text-dim); }
+
+  /* ---------- Install guide ---------- */
+  .install-card{ background: var(--card); border:1px solid var(--border); border-radius:20px; padding:44px 36px; }
+  .install-grid{ display:flex; flex-direction:column; gap:14px; }
+  .install-step{ display:grid; grid-template-columns:40px 1fr; gap:18px; align-items:start; background: rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:14px; padding:20px 22px; }
+  .install-step-num{ width:36px; height:36px; border-radius:50%; background: var(--grad); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-family:var(--font-mono); font-size:14.5px; flex-shrink:0; box-shadow: 0 8px 18px -8px rgba(139,92,246,0.6); }
+  .install-step h4{ font-size:15.5px; margin-bottom:6px; }
+  .install-step p{ font-size:13.5px; color: var(--text-dim); }
+  .install-step p + p{ margin-top:8px; }
+  .install-step code{ font-family: var(--font-mono); font-size:12.5px; background: rgba(255,255,255,0.08); padding:2px 7px; border-radius:6px; color:#e8e8f5; }
+  .install-step .sub{ margin-top:10px; padding-left:18px; border-left:2px solid var(--border); display:flex; flex-direction:column; gap:6px; }
+  .install-step .sub p{ font-size:13px; }
+  .install-screens{ display:flex; gap:16px; flex-wrap:wrap; margin-top:16px; }
+
+  /* Recreations of the actual macOS dialogs (not screenshots) so the guide reads
+     visually without shipping large image assets. */
+  .mac-mock{
+    width:200px; background:#f4f3f1; border-radius:14px; padding:16px;
+    box-shadow: 0 20px 40px -16px rgba(0,0,0,0.5); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    color:#1c1c1e; flex-shrink:0;
+  }
+  .mac-mock-wide{ width:300px; }
+  .mac-mock-icon{ font-size:26px; line-height:1; margin-bottom:8px; }
+  .mac-mock-title{ font-size:13px; font-weight:700; margin-bottom:6px; }
+  .mac-mock-body{ font-size:11px; line-height:1.4; color:#48484a; margin-bottom:12px; }
+  .mac-mock-buttons{ display:flex; gap:8px; justify-content:flex-end; }
+  .mac-mock-buttons-stack{ display:flex; flex-direction:column; gap:6px; }
+  .mac-btn{
+    font-size:11px; padding:5px 12px; border-radius:7px; background:#e4e3e1; color:#1c1c1e;
+    display:inline-block; text-align:center;
+  }
+  .mac-btn.full{ width:100%; box-sizing:border-box; }
+  .mac-btn-primary{ background:#2563EB; color:#fff; }
+  .mac-mock-row{
+    display:flex; flex-direction:column; align-items:flex-start; gap:8px;
+    font-size:11px; padding:10px 0; border-top:1px solid #e0dfdd;
+  }
+  .mac-mock-row:first-child{ border-top:none; padding-top:0; }
+  .mac-mock-row > span:first-child{ font-weight:500; }
+  .mac-mock-pill{ background:#e4e3e1; padding:3px 8px; border-radius:6px; font-size:10.5px; white-space:nowrap; }
+  .install-screens figure{ margin:0; display:flex; flex-direction:column; align-items:center; }
+  .install-screens figcaption{ font-size:11.5px; color: var(--text-dimmer); margin-top:8px; text-align:center; max-width:220px; }
 
   .success-box{
     display:none; align-items:flex-start; gap:12px; padding:16px 18px; border-radius:12px;
@@ -417,7 +469,7 @@
           </div>
           <div class="terminal-body">
             <div class="prompt-line"><span class="arrow">➜</span> ./bin/voice2prompt</div>
-            <div class="prompt-line" style="margin-bottom:2px;">Hold <b style="color:#e8e8f5">Ctrl+Option+Space</b>, speak, release…</div>
+            <div class="prompt-line" style="margin-bottom:2px;">Hold <b style="color:#e8e8f5" id="triggerKey">Ctrl+Option+Space</b>, speak, release…</div>
             <div class="waveform" id="waveform"></div>
             <div class="typed-line">📝 "<span id="typed"></span><span class="typed-cursor"></span>"</div>
             <div class="result-line" id="resultLine">audio 2.1s | infer 190ms | TOTAL <b>260ms</b> | <span class="via">via accessibility</span> ✅ under 800ms</div>
@@ -473,8 +525,16 @@
 
         <div class="card reveal">
           <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/></svg></div>
-          <h3>Fn-key or hotkey trigger</h3>
-          <p>Hold the 🌐 Fn key for push-to-talk, double-tap for hands-free, or bind a classic hotkey chord like Ctrl+Option+Space — no extra permission required.</p>
+          <h3>Six ways to trigger it</h3>
+          <p>Hold the 🌐 Fn key for push-to-talk, double-tap to lock into hands-free — or bind one of five hotkey chords instead, no extra permission required. Pick whichever fits your workflow in Settings → Trigger.</p>
+          <div class="trigger-keys">
+            <span class="is-fn">Fn / 🌐 — hold, double-tap to lock</span>
+            <span>Ctrl+Option+Space</span>
+            <span>Ctrl+Shift+Space</span>
+            <span>Cmd+Option+Space</span>
+            <span>F8</span>
+            <span>F9</span>
+          </div>
         </div>
 
         <div class="card reveal">
@@ -617,6 +677,7 @@
                 <button type="submit" class="btn btn-primary">Email me the link</button>
               </div>
               <p class="fine-print">Required — we send the current build link straight to your inbox. We'll also let you know about major new releases. No spam, unsubscribe anytime.</p>
+              <p class="fine-print">macOS will ask for a couple of permissions on first launch (and block the app once, since it isn't notarized yet) — see the <a href="#install-steps">install &amp; permissions steps</a> below before you open it.</p>
             </form>
 
             <div class="success-box" id="downloadSuccess">
@@ -624,6 +685,107 @@
               <p><b>Check your inbox.</b> We've sent the macOS download link to <span id="downloadEmailEcho"></span>.</p>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALL GUIDE (macOS) -->
+  <section id="install-steps">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">First launch (macOS)</span>
+        <h2>Getting past Gatekeeper, step by step</h2>
+        <p>Voice2Prompt is ad-hoc signed, not notarized yet (that needs a paid Apple Developer account) — so macOS blocks it once and asks for a few permissions. None of this is unusual for an open-source app; here's exactly what to click.</p>
+      </div>
+
+      <div class="install-card reveal">
+        <div class="install-grid">
+
+          <div class="install-step">
+            <div class="install-step-num">1</div>
+            <div>
+              <h4>Open the DMG and install</h4>
+              <p>Double-click <code>Voice2Prompt.dmg</code>, then drag <code>Voice2Prompt.app</code> onto the <code>Applications</code> shortcut in the same window. Eject the DMG once it's copied.</p>
+            </div>
+          </div>
+
+          <div class="install-step">
+            <div class="install-step-num">2</div>
+            <div>
+              <h4>Bypass Gatekeeper (one time only)</h4>
+              <p>Opening it normally shows this — it's expected, not a sign anything's wrong:</p>
+              <div class="install-screens">
+                <figure>
+                  <div class="mac-mock">
+                    <div class="mac-mock-icon">🛡️</div>
+                    <div class="mac-mock-title">"Voice2Prompt" Not Opened</div>
+                    <div class="mac-mock-body">Apple could not verify "Voice2Prompt" is free of malware that may harm your Mac or compromise your privacy.</div>
+                    <div class="mac-mock-buttons"><span class="mac-btn">Done</span><span class="mac-btn mac-btn-primary">Move to Bin</span></div>
+                  </div>
+                  <figcaption>What you'll see on a plain double-click</figcaption>
+                </figure>
+              </div>
+              <p style="margin-top:14px;">Click <b class="hl-white" style="color:var(--text);">Done</b> (not Move to Bin!) — then bypass it properly, either way:</p>
+              <div class="sub">
+                <p><b style="color:var(--text);">Right-click</b> (or Control-click) <code>Voice2Prompt.app</code> in Applications → <b style="color:var(--text);">Open</b> → click <b style="color:var(--text);">Open</b> again in the dialog that appears.</p>
+                <p><b style="color:var(--text);">— or —</b> go to <b style="color:var(--text);">System Settings → Privacy &amp; Security</b>, scroll to the security notice, and click <b style="color:var(--text);">Open Anyway</b>:</p>
+              </div>
+              <div class="install-screens">
+                <figure>
+                  <div class="mac-mock mac-mock-wide">
+                    <div class="mac-mock-row"><span>Allow applications from</span><span class="mac-mock-pill">App Store &amp; Known Developers</span></div>
+                    <div class="mac-mock-row"><span>"Voice2Prompt" was blocked to protect your Mac.</span><span class="mac-btn">Open Anyway</span></div>
+                  </div>
+                  <figcaption>System Settings → Privacy &amp; Security</figcaption>
+                </figure>
+                <figure>
+                  <div class="mac-mock">
+                    <div class="mac-mock-icon">🛡️</div>
+                    <div class="mac-mock-title">Open "Voice2Prompt"?</div>
+                    <div class="mac-mock-body">Apple is not able to verify that it is free from malware that could harm your Mac or compromise your privacy.</div>
+                    <div class="mac-mock-buttons-stack">
+                      <span class="mac-btn full">Move to Bin</span>
+                      <span class="mac-btn mac-btn-primary full">Open Anyway</span>
+                      <span class="mac-btn full">Done</span>
+                    </div>
+                  </div>
+                  <figcaption>Confirm once more — click Open Anyway</figcaption>
+                </figure>
+              </div>
+              <p style="margin-top:14px;">Still getting blocked (common right after a browser download)? Clear the quarantine flag from Terminal:</p>
+              <div class="sub"><p><code>xattr -dr com.apple.quarantine /Applications/Voice2Prompt.app</code></p></div>
+            </div>
+          </div>
+
+          <div class="install-step">
+            <div class="install-step-num">3</div>
+            <div>
+              <h4>Grant permissions</h4>
+              <p><b style="color:var(--text);">Microphone</b> — macOS prompts automatically the first time you record. Click Allow.</p>
+              <p><b style="color:var(--text);">Accessibility</b> (required) — <code>System Settings → Privacy &amp; Security → Accessibility</code>, toggle Voice2Prompt on. Quit and reopen the app afterward — permission changes only apply on relaunch.</p>
+              <p><b style="color:var(--text);">Input Monitoring</b> (only if using the default Fn-key trigger) — <code>System Settings → Privacy &amp; Security → Input Monitoring</code>, toggle Voice2Prompt on. Also set <code>Keyboard → "Press 🌐 key to"</code> → Do Nothing. Picked a hotkey chord instead? Skip this one entirely — none of the five need it.</p>
+              <div class="sub">
+                <p><b class="install-highlight">Six triggers to choose from</b> in Settings → Trigger:</p>
+                <p><code>Fn / 🌐</code> — hold to talk, double-tap to lock into hands-free (needs Input Monitoring)</p>
+                <p><code>Ctrl+Option+Space</code> · <code>Ctrl+Shift+Space</code> · <code>Cmd+Option+Space</code> · <code>F8</code> · <code>F9</code> — hold to talk, no extra permission</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="install-step">
+            <div class="install-step-num">4</div>
+            <div>
+              <h4>Start dictating</h4>
+              <p>Hold your trigger, speak, release — the transcript types itself wherever your cursor is.</p>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="arch-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg>
+          <p><b>Every permission is scoped to this one app</b> and can be revoked anytime from the same Privacy &amp; Security screens. Voice2Prompt is fully open source, so you can read exactly what each permission is used for in <code style="font-family:var(--font-mono);">internal/inject/</code>, <code style="font-family:var(--font-mono);">internal/audio/</code>, and <code style="font-family:var(--font-mono);">internal/hotkey/</code>.</p>
         </div>
       </div>
     </div>
@@ -688,6 +850,7 @@
         <h5>Docs</h5>
         <a href="#how-it-works">Architecture</a>
         <a href="#roadmap">Roadmap</a>
+        <a href="#install-steps">Install &amp; permissions</a>
         <a href="https://github.com/anukool23/voice2prompt#readme" target="_blank" rel="noopener">README<svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></a>
         <a href="https://github.com/anukool23/voice2prompt/blob/main/flow-clone-implementation-plan.md" target="_blank" rel="noopener">Implementation plan<svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></a>
       </div>
@@ -718,6 +881,15 @@
   const resultLine = document.getElementById('resultLine');
   const waveform = document.getElementById('waveform');
 
+  // ---- Cycle through all six triggers, one per second ----
+  const triggerKeys = ["Ctrl+Option+Space", "Ctrl+Shift+Space", "Cmd+Option+Space", "F8", "F9", "Fn"];
+  const triggerKeyEl = document.getElementById('triggerKey');
+  let triggerIdx = 0;
+  setInterval(() => {
+    triggerIdx = (triggerIdx + 1) % triggerKeys.length;
+    triggerKeyEl.textContent = triggerKeys[triggerIdx];
+  }, 1000);
+
   for(let i=0;i<28;i++){
     const bar = document.createElement('i');
     bar.style.height = (10 + Math.random()*24) + 'px';
@@ -742,11 +914,19 @@
   }
   setTimeout(runTypingDemo, 700);
 
-  // ---- Scroll reveal ----
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
-  }, { threshold: 0.12 });
-  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  // ---- Scroll reveal (with a fallback so nothing gets stuck at opacity:0) ----
+  const revealEls = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    revealEls.forEach(el => {
+      io.observe(el);
+      setTimeout(() => el.classList.add('in'), 1200); // safety net if it never fires
+    });
+  } else {
+    revealEls.forEach(el => el.classList.add('in'));
+  }
 
   // ---- Platform toggle ----
   const platformBtns = document.querySelectorAll('.platform-btn');

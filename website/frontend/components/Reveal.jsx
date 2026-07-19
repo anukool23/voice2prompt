@@ -13,11 +13,23 @@ export default function Reveal({ as: Tag = "div", className = "", style, childre
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
+    // Safety net: if IntersectionObserver is unavailable, misbehaves, or simply
+    // never fires (some embedded/preview contexts don't report intersections
+    // reliably), force the section visible after a short delay instead of
+    // leaving it stuck at opacity:0 forever.
+    const fallback = setTimeout(() => setInView(true), 1200);
+
+    if (typeof IntersectionObserver === "undefined") {
+      return () => clearTimeout(fallback);
+    }
+
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setInView(true);
+            clearTimeout(fallback);
             io.unobserve(entry.target);
           }
         });
@@ -25,7 +37,10 @@ export default function Reveal({ as: Tag = "div", className = "", style, childre
       { threshold: 0.12 }
     );
     io.observe(el);
-    return () => io.disconnect();
+    return () => {
+      io.disconnect();
+      clearTimeout(fallback);
+    };
   }, []);
 
   return (

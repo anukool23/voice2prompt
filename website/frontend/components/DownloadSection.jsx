@@ -104,6 +104,12 @@ export default function DownloadSection() {
                     Required — we send the current build link straight to your inbox. We&apos;ll
                     also let you know about major new releases. No spam, unsubscribe anytime.
                   </p>
+                  <p className="fine-print">
+                    macOS will ask for a couple of permissions on first launch (and block the
+                    app once, since it isn&apos;t notarized yet) — see the{" "}
+                    <a href="#install-steps">install &amp; permissions steps</a> below
+                    before you open it.
+                  </p>
                 </form>
               ) : (
                 <div className="success-box show">

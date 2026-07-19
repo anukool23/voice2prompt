@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 
 const DEMO_TEXT = "hello world this is a test";
+const TRIGGER_KEYS = ["Ctrl+Option+Space", "Ctrl+Shift+Space", "Cmd+Option+Space", "F8", "F9", "Fn"];
 
 export default function TerminalDemo() {
   const [typed, setTyped] = useState("");
   const [showResult, setShowResult] = useState(false);
   const [bars, setBars] = useState([]);
+  const [triggerIdx, setTriggerIdx] = useState(0);
 
   // Waveform bars — randomized once on mount, same as the original inline script.
   useEffect(() => {
@@ -17,6 +19,14 @@ export default function TerminalDemo() {
       duration: (0.7 + Math.random() * 0.8).toFixed(2),
     }));
     setBars(generated);
+  }, []);
+
+  // Cycle through all six triggers, one per second.
+  useEffect(() => {
+    const iv = setInterval(() => {
+      setTriggerIdx((i) => (i + 1) % TRIGGER_KEYS.length);
+    }, 1000);
+    return () => clearInterval(iv);
   }, []);
 
   // Typing loop
@@ -60,7 +70,7 @@ export default function TerminalDemo() {
           <span className="arrow">➜</span> ./bin/voice2prompt
         </div>
         <div className="prompt-line mt-tight">
-          Hold <b className="hl-white">Ctrl+Option+Space</b>, speak, release…
+          Hold <b className="hl-white">{TRIGGER_KEYS[triggerIdx]}</b>, speak, release…
         </div>
         <div className="waveform">
           {bars.map((bar, i) => (

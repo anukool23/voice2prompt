@@ -20,6 +20,59 @@ Wails/React UI (Phase 3). See
 | **5** | Command mode — editing keystrokes + LLM rewrite of selection | 🟡 builds, needs live test |
 | **6** | Packaging: self-contained `.app`, menu-bar tray, launch-at-login | 🟡 builds, needs live test |
 
+## Installing the app (macOS)
+
+If you just downloaded `Voice2Prompt.dmg` (rather than building from source), follow
+these steps in order — macOS will block the app and ask for permissions along the way,
+and skipping a step is the most common reason dictation "doesn't do anything."
+
+1. **Open the DMG and install.** Double-click `Voice2Prompt.dmg`, then drag
+   `Voice2Prompt.app` onto the `Applications` shortcut in the same window. Eject the
+   DMG once it's copied.
+
+2. **First launch — bypass Gatekeeper.** The app is currently **ad-hoc signed**, not
+   notarized (that needs a paid Apple Developer account — see Phase 6 below), so macOS
+   will refuse to open it the normal way and show *"Voice2Prompt can't be opened because
+   it is from an unidentified developer"* (or *"Apple could not verify..."*). This is
+   expected for a self-distributed open-source app, not a sign anything's wrong. Bypass
+   it **once**, either way:
+   - **Right-click** (or Control-click) `Voice2Prompt.app` in Applications → **Open** →
+     click **Open** again in the confirmation dialog, **or**
+   - **System Settings → Privacy & Security** → scroll down to the security notice
+     about Voice2Prompt → click **Open Anyway** → confirm with your password/Touch ID.
+   - If macOS keeps re-blocking it (common after downloading via a browser, which
+     re-applies the quarantine flag), clear it from Terminal instead:
+     ```sh
+     xattr -dr com.apple.quarantine /Applications/Voice2Prompt.app
+     ```
+
+3. **Grant permissions when prompted.** Voice2Prompt won't work correctly without these
+   — grant all that apply to how you plan to use it:
+   - **Microphone** — macOS prompts automatically the first time you try to record.
+     Click **Allow**.
+   - **Accessibility** *(required)* — needed for text injection (AX insert, with a
+     clipboard + ⌘V fallback). Go to **System Settings → Privacy & Security →
+     Accessibility** and toggle **Voice2Prompt** on. If you don't see the prompt, add it
+     manually from that screen. **Quit and reopen the app** after granting — permission
+     changes only take effect on relaunch.
+   - **Input Monitoring** *(only if using the default Fn-key trigger)* — go to
+     **System Settings → Privacy & Security → Input Monitoring** and toggle
+     **Voice2Prompt** on. Also set **System Settings → Keyboard → "Press 🌐 key to"** to
+     **Do Nothing**, so macOS doesn't pop up the emoji picker instead of triggering
+     dictation. If you instead pick one of the five hotkey-chord triggers
+     (`Ctrl+Option+Space`, `Ctrl+Shift+Space`, `Cmd+Option+Space`, `F8`, or `F9` — see
+     Settings → Trigger), Input Monitoring isn't needed at all — see
+     [Triggers: hotkey chord or Fn key](#triggers-hotkey-chord-or-fn-key) for the full
+     breakdown of all six options.
+
+4. **You're set.** Hold your trigger (Fn or your configured hotkey), speak, and release
+   — the transcript types itself wherever your cursor is.
+
+Every permission above is scoped to this one app and can be revoked anytime from the
+same Privacy & Security screens. Voice2Prompt is fully open source, so you can read
+exactly what each permission is used for in `internal/inject/`, `internal/audio/`, and
+`internal/hotkey/`.
+
 ## Architecture
 
 The engine is Go. Speech-to-text runs as a local `whisper-server` sidecar that the Go
@@ -155,17 +208,34 @@ open build/bin/Voice2Prompt.app
 
 ## Triggers: hotkey chord or Fn key
 
-Settings → Trigger picks how dictation activates:
+Settings → Trigger picks how dictation activates. There are **six** options in total —
+five fixed hotkey chords plus the Fn/🌐 key:
 
-- **Fn / 🌐 key** (default) — Wispr-Flow-style:
-  - **Hold Fn** → push-to-talk (record while held, transcribe on release)
-  - **Double-tap Fn** → lock into hands-free continuous recording; **tap Fn again** to stop
-  - Implemented with a listen-only `CGEventTap` on the Fn modifier flag
-    ([internal/hotkey/fn_darwin.go](internal/hotkey/fn_darwin.go)), so it needs **Input
-    Monitoring** permission. Also set System Settings → Keyboard → "Press 🌐 key to" =
-    **Do Nothing** so macOS doesn't open the emoji picker.
-- **Hotkey chord** — e.g. `Ctrl+Option+Space`, hold to talk. Uses Carbon
-  `RegisterEventHotKey`; needs no extra permission. (The CLI always uses this.)
+| # | Trigger | How it works | Permission needed |
+|---|---------|--------------|--------------------|
+| 1 | `Ctrl+Option+Space` (default chord) | Hold to talk, release to transcribe | None |
+| 2 | `Ctrl+Shift+Space` | Hold to talk, release to transcribe | None |
+| 3 | `Cmd+Option+Space` | Hold to talk, release to transcribe | None |
+| 4 | `F8` | Hold to talk, release to transcribe | None |
+| 5 | `F9` | Hold to talk, release to transcribe | None |
+| 6 | `Fn` / 🌐 key (default trigger) | **Hold** to talk; **double-tap** to lock into hands-free continuous recording, **tap again** to stop | Input Monitoring |
+
+Details:
+
+- **Hotkey chord** (options 1–5) — pick any of the five from Settings → Push-to-talk
+  hotkey. All are implemented with Carbon's `RegisterEventHotKey`
+  ([internal/hotkey/chord_darwin.go](internal/hotkey/chord_darwin.go)) and need **no
+  extra permission** beyond Accessibility. Hold the chord, speak, release. (The CLI
+  always uses a chord — default `Ctrl+Option+Space`.)
+- **Fn / 🌐 key** — hold to talk (push-to-talk); **double-tap** to lock into hands-free
+  continuous recording, then **tap Fn again** to stop. Implemented with a listen-only
+  `CGEventTap` on the Fn modifier flag
+  ([internal/hotkey/fn_darwin.go](internal/hotkey/fn_darwin.go)), so it needs **Input
+  Monitoring** permission. Also set System Settings → Keyboard → "Press 🌐 key to" =
+  **Do Nothing** so macOS doesn't open the emoji picker instead of triggering dictation.
+
+If a chord conflicts with another app or shortcut you already use, just switch to a
+different one in Settings — no restart or re-permissioning required for chords 1–5.
 
 ## Phase 5 — command mode
 
