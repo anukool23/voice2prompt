@@ -7,14 +7,30 @@ Project Settings -> Environment Variables. Nothing here is ever hardcoded.
 import os
 from functools import lru_cache
 
+from dotenv import load_dotenv
+
+# Loads variables from a local .env file into os.environ, if one exists.
+# No-op on Vercel (no .env file there — env vars are injected directly by the
+# platform), so this is safe to call unconditionally in both environments.
+load_dotenv()
+
 
 def _split_csv(value: str) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def _normalize_supabase_url(url: str) -> str:
+    """supabase-py appends /rest/v1 itself, so SUPABASE_URL must be the bare
+    project URL. Supabase's dashboard also shows a "REST API URL" that already
+    has /rest/v1 baked in — if that got pasted in by mistake, strip it (and any
+    trailing slash) so the client doesn't end up hitting .../rest/v1/rest/v1/...
+    """
+    return url.strip().rstrip("/").removesuffix("/rest/v1")
+
+
 class Settings:
     # --- Supabase (server-side only; service role key must stay secret) ---
-    supabase_url: str = os.environ.get("SUPABASE_URL", "")
+    supabase_url: str = _normalize_supabase_url(os.environ.get("SUPABASE_URL", ""))
     supabase_service_role_key: str = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
     # --- Resend ---

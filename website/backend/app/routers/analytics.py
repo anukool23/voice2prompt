@@ -27,6 +27,7 @@ def track_event(payload: AnalyticsIn, request: Request):
     try:
         get_supabase().table("analytics_events").insert(record).execute()
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=500, detail="Could not record event") from exc
+        print(f"[analytics] insert failed: {exc}")
+        raise HTTPException(status_code=500, detail=f"Could not record event: {exc}") from exc
 
     return {"ok": True}

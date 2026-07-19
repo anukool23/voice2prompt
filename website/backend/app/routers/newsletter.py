@@ -21,6 +21,7 @@ def subscribe_newsletter(payload: NewsletterIn):
             ignore_duplicates=True,
         ).execute()
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=500, detail="Could not save subscriber") from exc
+        print(f"[newsletter] upsert failed for {email}: {exc}")
+        raise HTTPException(status_code=500, detail=f"Could not save subscriber: {exc}") from exc
 
     return {"ok": True}

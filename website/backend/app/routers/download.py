@@ -33,7 +33,8 @@ def request_download(payload: DownloadIn):
             }
         ).execute()
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=500, detail="Could not record download request") from exc
+        print(f"[download] insert failed for {email}: {exc}")
+        raise HTTPException(status_code=500, detail=f"Could not record download request: {exc}") from exc
 
     label = PLATFORM_LABELS.get(platform, platform)
     try:

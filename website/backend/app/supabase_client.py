@@ -13,8 +13,18 @@ from app.config import settings
 
 @lru_cache
 def get_supabase() -> Client:
-    if not settings.supabase_url or not settings.supabase_service_role_key:
+    missing = [
+        name
+        for name, value in (
+            ("SUPABASE_URL", settings.supabase_url),
+            ("SUPABASE_SERVICE_ROLE_KEY", settings.supabase_service_role_key),
+        )
+        if not value
+    ]
+    if missing:
         raise RuntimeError(
-            "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in the environment"
+            f"Missing required env var(s): {', '.join(missing)}. Check that "
+            f"website/backend/.env exists and has real (non-placeholder) values — "
+            f"see .env.example."
         )
     return create_client(settings.supabase_url, settings.supabase_service_role_key)
