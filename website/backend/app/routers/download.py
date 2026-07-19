@@ -37,6 +37,8 @@ def request_download(payload: DownloadIn):
         raise HTTPException(status_code=500, detail=f"Could not record download request: {exc}") from exc
 
     label = PLATFORM_LABELS.get(platform, platform)
+    email_sent = True
+    email_error = None
     try:
         send_email(
             to=email,
@@ -45,7 +47,14 @@ def request_download(payload: DownloadIn):
         )
     except Exception as exc:  # noqa: BLE001
         # The request is already saved above — don't fail the whole call just
-        # because email delivery hiccuped. Surface it in logs for now.
+        # because email delivery hiccuped, but don't hide it either.
+        email_sent = False
+        email_error = str(exc)
         print(f"[download] email send failed for {email}: {exc}")
 
-    return {"ok": True, "downloadUrl": download_url}
+    return {
+        "ok": True,
+        "downloadUrl": download_url,
+        "emailSent": email_sent,
+        "emailError": email_error,
+    }
