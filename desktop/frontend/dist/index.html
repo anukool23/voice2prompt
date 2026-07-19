@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice2Prompt</title>
+  <style>
+    :root {
+      --bg: #1c1c1e; --card: #2c2c2e; --card2: #3a3a3c; --text: #f2f2f7;
+      --muted: #98989f; --accent: #0a84ff; --ok: #30d158; --warn: #ff9f0a; --err: #ff453a;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: -apple-system, system-ui, sans-serif;
+      background: var(--bg); color: var(--text); font-size: 14px;
+      -webkit-user-select: none; user-select: none;
+    }
+    #titlebar { height: 28px; --wails-draggable: drag; }
+    .wrap { padding: 8px 20px 28px; max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 20px; margin: 0 0 2px; }
+    .sub { color: var(--muted); font-size: 12px; }
+    .brand { display: flex; align-items: center; gap: 13px; margin-bottom: 18px; }
+    .brand .logo { width: 46px; height: 46px; border-radius: 11px; flex-shrink: 0; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+    .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin: 0 0 12px; }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .row:last-child { margin-bottom: 0; }
+    label { color: var(--muted); font-size: 13px; }
+    input[type=text], select {
+      background: var(--card2); border: 1px solid #48484a; color: var(--text);
+      border-radius: 8px; padding: 7px 10px; font-size: 13px; min-width: 180px; outline: none;
+    }
+    input[type=text]:focus, select:focus { border-color: var(--accent); }
+    button {
+      background: var(--accent); color: #fff; border: none; border-radius: 8px;
+      padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    button.secondary { background: var(--card2); }
+    button.stop { background: var(--err); }
+    button:active { opacity: .8; }
+    .pill { font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+    .pill.ok { background: rgba(48,209,88,.18); color: var(--ok); }
+    .pill.warn { background: rgba(255,159,10,.18); color: var(--warn); }
+    .pill.off { background: rgba(152,152,159,.18); color: var(--muted); }
+    .status-big { display: flex; align-items: center; gap: 10px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+    .dot.live { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+    .toggle { position: relative; width: 42px; height: 24px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: var(--card2); border-radius: 24px; transition: .2s; }
+    .slider:before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--ok); }
+    input:checked + .slider:before { transform: translateX(18px); }
+    .hint { font-size: 11px; color: var(--muted); margin-top: 6px; }
+    .dict-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .dict-row input { min-width: 0; flex: 1; }
+    .dict-row button { padding: 6px 10px; background: var(--card2); }
+    .feed { max-height: 180px; overflow-y: auto; }
+    .utt { background: var(--card2); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; font-size: 12px; }
+    .utt .clean { color: var(--text); }
+    .utt .raw { color: var(--muted); text-decoration: line-through; font-size: 11px; }
+    .utt .meta { color: var(--muted); font-size: 11px; margin-top: 3px; }
+    .empty { color: var(--muted); font-size: 12px; font-style: italic; }
+    /* Onboarding overlay */
+    #onboard { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none; align-items: center; justify-content: center; z-index: 100; }
+    #onboard.show { display: flex; }
+    .ob-card { background: var(--card); border-radius: 16px; padding: 28px; max-width: 380px; text-align: center; }
+    .ob-card h2 { text-transform: none; letter-spacing: 0; color: var(--text); font-size: 18px; }
+    .ob-step { text-align: left; margin: 14px 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--card2); padding: 8px 16px; border-radius: 20px; font-size: 12px; opacity: 0; transition: opacity .3s; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div id="titlebar"></div>
+  <div class="wrap">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="lg" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#2563EB"/>
+          </linearGradient>
+        </defs>
+        <rect width="1024" height="1024" rx="228" fill="url(#lg)"/>
+        <g fill="none" stroke="#fff" stroke-width="36" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="440" y="196" width="144" height="252" rx="72" fill="#fff" stroke="none"/>
+          <path d="M 372 420 A 140 140 0 0 0 652 420"/>
+          <line x1="512" y1="560" x2="512" y2="612"/>
+          <polyline points="452,648 512,700 452,752"/>
+          <line x1="556" y1="752" x2="656" y2="752"/>
+        </g>
+      </svg>
+      <div>
+        <h1>Voice2Prompt</h1>
+        <div class="sub">On-device voice dictation — nothing leaves your Mac.</div>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div class="card">
+      <h2>Status</h2>
+      <div class="row">
+        <div class="status-big">
+          <span class="dot" id="engineDot"></span>
+          <span id="engineLabel">Stopped</span>
+        </div>
+        <button id="engineBtn" onclick="toggleEngine()">Start dictation</button>
+      </div>
+      <div class="row">
+        <label>Cleanup (LLM)</label>
+        <span class="pill off" id="cleanupPill">—</span>
+      </div>
+    </div>
+
+    <!-- Permissions -->
+    <div class="card">
+      <h2>Permissions</h2>
+      <div class="row">
+        <label>Microphone (needed to hear you)</label>
+        <span class="pill off" id="micPill">checking…</span>
+      </div>
+      <div class="row" id="micActionRow" style="display:none">
+        <span class="hint">Grant microphone access to dictate.</span>
+        <button class="secondary" onclick="requestMic()">Request access</button>
+      </div>
+      <div class="row">
+        <label>Accessibility (needed to insert text)</label>
+        <span class="pill off" id="axPill">checking…</span>
+      </div>
+      <div class="row" id="axActionRow" style="display:none">
+        <span class="hint">Grant it, then relaunch Voice2Prompt.</span>
+        <button class="secondary" onclick="requestAX()">Request access</button>
+      </div>
+      <div class="row" id="imRow" style="display:none">
+        <label>Input Monitoring (needed for the Fn key)</label>
+        <span class="pill off" id="imPill">checking…</span>
+      </div>
+      <div class="row" id="imActionRow" style="display:none">
+        <span class="hint">Grant it, then relaunch Voice2Prompt.</span>
+        <button class="secondary" onclick="requestIM()">Request access</button>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="card">
+      <h2>Settings</h2>
+      <div class="row">
+        <label>Trigger</label>
+        <select id="trigger" onchange="onTriggerChange()">
+          <option value="chord">Hotkey chord</option>
+          <option value="fn">Fn / 🌐 key (hold to talk, double-tap to lock)</option>
+        </select>
+      </div>
+      <div class="row" id="hotkeyRow">
+        <label>Push-to-talk hotkey</label>
+        <select id="hotkey">
+          <option>Ctrl+Option+Space</option>
+          <option>Ctrl+Shift+Space</option>
+          <option>Cmd+Option+Space</option>
+          <option>F8</option>
+          <option>F9</option>
+        </select>
+      </div>
+      <div class="hint" id="fnHint" style="display:none">Hold Fn to talk; double-tap Fn to keep recording hands-free (tap Fn again to stop). Set System Settings → Keyboard → “Press 🌐 key to” = <b>Do Nothing</b> to avoid the emoji picker.</div>
+      <div class="row">
+        <label>Language</label>
+        <select id="language">
+          <option value="en">English</option>
+          <option value="auto">Auto-detect</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="de">German</option>
+          <option value="hi">Hindi</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>Whisper model</label>
+        <input type="text" id="whisperModel" />
+      </div>
+      <div class="row">
+        <label>Enable LLM cleanup</label>
+        <span class="toggle"><input type="checkbox" id="cleanupEnabled" /><span class="slider"></span></span>
+      </div>
+      <div class="row">
+        <label>Voice commands (“select all”, “make this formal”…)</label>
+        <span class="toggle"><input type="checkbox" id="commandsEnabled" /><span class="slider"></span></span>
+      </div>
+      <div class="row">
+        <label>Cleanup model (Ollama)</label>
+        <input type="text" id="llmModel" />
+      </div>
+      <div class="row">
+        <label>Launch at login</label>
+        <span class="toggle"><input type="checkbox" id="launchAtLogin" onchange="toggleLaunchAtLogin()" /><span class="slider"></span></span>
+      </div>
+      <div class="hint">Non-English languages need a multilingual whisper model (e.g. ggml-base.bin).</div>
+    </div>
+
+    <!-- Dictionary -->
+    <div class="card">
+      <h2>Custom dictionary</h2>
+      <div id="dictList"></div>
+      <div class="dict-row">
+        <input type="text" id="dictKey" placeholder="heard (e.g. github)" />
+        <input type="text" id="dictVal" placeholder="replace with (e.g. GitHub)" />
+        <button onclick="addDict()">Add</button>
+      </div>
+      <div class="hint">Whole-word, case-insensitive replacement applied to every transcript.</div>
+    </div>
+
+    <div class="row" style="justify-content:flex-end">
+      <button onclick="save()">Save settings</button>
+    </div>
+
+    <!-- Live feed -->
+    <div class="card">
+      <h2>Recent</h2>
+      <div class="feed" id="feed"><div class="empty">Dictate something to see it here.</div></div>
+    </div>
+  </div>
+
+  <!-- Onboarding -->
+  <div id="onboard">
+    <div class="ob-card">
+      <h2>Welcome to Voice2Prompt 👋</h2>
+      <div class="ob-step">
+        1. <b>Grant Accessibility</b> so text can be inserted where you type.<br/><br/>
+        2. Pick your <b>push-to-talk hotkey</b> (default Ctrl+Option+Space).<br/><br/>
+        3. Press <b>Start dictation</b>, then hold the hotkey and speak.
+      </div>
+      <button onclick="finishOnboarding()">Get started</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

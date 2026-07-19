@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice2Prompt — On-device voice dictation, open source</title>
+<meta name="description" content="Voice2Prompt is a free, open-source, on-device voice dictation tool for macOS + Windows. Hold a key, speak, and it types itself — no cloud, no per-word cost.">
+
+<!-- Netlify will auto-detect this form at deploy/build time because it's static HTML -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg: #07070c;
+    --bg-2: #0c0c14;
+    --card: rgba(255,255,255,0.035);
+    --card-hover: rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.09);
+    --border-hover: rgba(255,255,255,0.18);
+    --text: #ececf3;
+    --text-dim: #9c9cb0;
+    --text-dimmer: #6c6c80;
+    --violet: #8B5CF6;
+    --blue: #2563EB;
+    --cyan: #22d3ee;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --grad: linear-gradient(120deg, var(--violet), var(--blue));
+    --grad-text: linear-gradient(120deg, #c4b5fd, #93c5fd);
+    --radius: 16px;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+  }
+
+  *{ box-sizing: border-box; margin:0; padding:0; }
+
+  html{ scroll-behavior: smooth; }
+
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ---------- Ambient background ---------- */
+  .bg-fx{
+    position: fixed; inset: 0; z-index: -2; overflow: hidden; pointer-events:none;
+  }
+  .bg-fx::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 75%);
+  }
+  .orb{
+    position:absolute; border-radius:50%; filter: blur(90px); opacity:0.35;
+    animation: float 18s ease-in-out infinite;
+  }
+  .orb1{ width:520px; height:520px; background: var(--violet); top:-180px; left:-120px; }
+  .orb2{ width:460px; height:460px; background: var(--blue); top:100px; right:-160px; animation-delay:-6s; }
+  .orb3{ width:380px; height:380px; background: var(--cyan); opacity:0.14; bottom:-160px; left:35%; animation-delay:-11s; }
+  @keyframes float{
+    0%,100%{ transform: translate(0,0) scale(1); }
+    50%{ transform: translate(30px,-40px) scale(1.08); }
+  }
+
+  .wrap{ max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+
+  /* ---------- Nav ---------- */
+  header{
+    position: sticky; top:0; z-index: 100;
+    backdrop-filter: blur(16px) saturate(160%);
+    background: rgba(7,7,12,0.65);
+    border-bottom: 1px solid var(--border);
+  }
+  nav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 14px 0;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; font-weight:700; font-size:17px; letter-spacing:-0.2px; text-decoration:none; color:var(--text); }
+  .brand svg{ width:30px; height:30px; display:block; }
+  .nav-links{ display:flex; align-items:center; gap:30px; }
+  .nav-links a{ color: var(--text-dim); text-decoration:none; font-size:14.5px; font-weight:500; transition: color .2s; }
+  .nav-links a:hover{ color: var(--text); }
+  .ext-icon{ display:inline-block; width:0.62em; height:0.62em; margin-left:4px; vertical-align:-0.05em; opacity:0.6; }
+  .nav-cta{ display:flex; align-items:center; gap:12px; }
+  .nav-mobile-toggle{ display:none; background:none; border:none; color:var(--text); font-size:22px; cursor:pointer; }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding: 11px 20px; border-radius: 999px; font-weight:600; font-size:14.5px;
+    text-decoration:none; cursor:pointer; border:1px solid transparent;
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
+    white-space:nowrap;
+  }
+  .btn:active{ transform: scale(0.97); }
+  .btn-primary{
+    background: var(--grad); color:#fff;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.08) inset, 0 8px 24px -8px rgba(139,92,246,0.55);
+  }
+  .btn-primary:hover{ box-shadow: 0 0 0 1px rgba(255,255,255,0.15) inset, 0 10px 30px -6px rgba(139,92,246,0.75); transform: translateY(-1px); }
+  .btn-ghost{
+    background: var(--card); color: var(--text); border-color: var(--border);
+  }
+  .btn-ghost:hover{ background: var(--card-hover); border-color: var(--border-hover); }
+  .btn-sm{ padding: 8px 16px; font-size:13.5px; }
+  .btn-block{ width:100%; }
+
+  /* ---------- Hero ---------- */
+  .hero{ padding: 88px 0 60px; }
+  .hero-grid{ display:grid; grid-template-columns: 1.05fr 0.95fr; gap:56px; align-items:center; }
+
+  .pill{
+    display:inline-flex; align-items:center; gap:8px;
+    padding: 6px 14px; border-radius: 999px;
+    background: var(--card); border:1px solid var(--border);
+    font-size: 12.5px; font-weight:600; color: var(--text-dim);
+    font-family: var(--font-mono);
+  }
+  .pill .dot{ width:6px; height:6px; border-radius:50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+
+  h1{
+    font-size: 52px; line-height: 1.08; letter-spacing:-1.5px; margin: 20px 0 20px;
+    font-weight: 800;
+  }
+  h1 .grad{
+    background: var(--grad-text); -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .hero p.lead{ font-size:17px; color: var(--text-dim); max-width: 520px; margin-bottom: 30px; }
+  .hero-actions{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom: 34px; }
+
+  .hero-meta{ display:flex; gap:22px; flex-wrap:wrap; }
+  .hero-meta .item{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-dimmer); }
+  .hero-meta svg{ width:15px; height:15px; flex-shrink:0; color: var(--green); }
+
+  /* Terminal mock */
+  .terminal{
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow:hidden;
+    box-shadow: 0 30px 80px -30px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.02) inset;
+  }
+  .terminal-bar{
+    display:flex; align-items:center; gap:8px;
+    padding: 12px 16px; border-bottom:1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+  .terminal-bar span{ width:10px; height:10px; border-radius:50%; }
+  .terminal-bar span:nth-child(1){ background:#ff5f57; }
+  .terminal-bar span:nth-child(2){ background:#febc2e; }
+  .terminal-bar span:nth-child(3){ background:#28c840; }
+  .terminal-title{ margin-left:8px; font-family: var(--font-mono); font-size:12px; color:var(--text-dimmer); }
+  .terminal-body{ padding: 22px 22px 26px; font-family: var(--font-mono); font-size:13.5px; color:#c9c9dd; min-height: 250px; }
+  .terminal-body .prompt-line{ color: var(--text-dimmer); margin-bottom: 14px; }
+  .terminal-body .prompt-line .arrow{ color: var(--green); }
+  .waveform{ display:flex; align-items:center; gap:3px; height: 34px; margin: 16px 0 18px; }
+  .waveform i{
+    width:3px; border-radius:2px; background: linear-gradient(180deg, var(--violet), var(--blue));
+    animation: wave 1.1s ease-in-out infinite;
+  }
+  @keyframes wave{ 0%,100%{ transform: scaleY(0.25); } 50%{ transform: scaleY(1); } }
+  .typed-line{ color:#e8e8f5; }
+  .typed-cursor{ display:inline-block; width:7px; height:15px; background: var(--violet); vertical-align: middle; margin-left:2px; animation: blink 0.9s steps(1) infinite; }
+  @keyframes blink{ 50%{ opacity:0; } }
+  .result-line{ margin-top:14px; color: var(--text-dimmer); opacity:0; transition: opacity .4s ease; }
+  .result-line.show{ opacity:1; }
+  .result-line b{ color: var(--green); font-weight:600; }
+  .result-line .via{ color: var(--cyan); }
+
+  /* ---------- Section shell ---------- */
+  section{ padding: 96px 0; position:relative; }
+  .section-head{ max-width: 640px; margin: 0 auto 56px; text-align:center; }
+  .eyebrow{
+    font-family: var(--font-mono); font-size:12.5px; font-weight:600; letter-spacing:1px;
+    text-transform:uppercase; color: var(--violet); margin-bottom:14px; display:block;
+  }
+  h2{ font-size: 36px; letter-spacing:-1px; margin-bottom:14px; font-weight:800; }
+  .section-head p{ color: var(--text-dim); font-size:15.5px; }
+
+  .reveal{ opacity:0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.in{ opacity:1; transform:none; }
+
+  /* ---------- Trust strip ---------- */
+  .trust{ padding: 34px 0; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  .trust-grid{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:24px; }
+  .trust-item{ display:flex; align-items:center; gap:12px; font-size:14px; color:var(--text-dim); }
+  .trust-item svg{ width:20px; height:20px; color: var(--violet); flex-shrink:0; }
+  .trust-item b{ color: var(--text); font-weight:600; }
+
+  /* ---------- Features ---------- */
+  .feature-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; }
+  .card{
+    background: var(--card); border:1px solid var(--border); border-radius: var(--radius);
+    padding: 26px 24px; transition: border-color .2s ease, transform .2s ease, background .2s ease;
+    position:relative; overflow:hidden;
+  }
+  .card:hover{ border-color: var(--border-hover); background: var(--card-hover); transform: translateY(-3px); }
+  .card-icon{
+    width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center;
+    background: var(--grad); margin-bottom:18px;
+    box-shadow: 0 8px 20px -8px rgba(139,92,246,0.6);
+  }
+  .card-icon svg{ width:22px; height:22px; color:#fff; }
+  .card h3{ font-size:17px; margin-bottom:8px; letter-spacing:-0.2px; }
+  .card p{ font-size:14px; color: var(--text-dim); }
+  .card .tag{
+    position:absolute; top:20px; right:20px; font-family:var(--font-mono); font-size:10.5px;
+    padding:3px 9px; border-radius:999px; background: rgba(139,92,246,0.12); color:#c4b5fd; border:1px solid rgba(139,92,246,0.3);
+  }
+
+  /* ---------- Architecture ---------- */
+  .arch{
+    background: var(--card); border:1px solid var(--border); border-radius: 20px; padding: 44px 36px;
+  }
+  .arch-flow{ display:flex; align-items:center; gap:0; overflow-x:auto; padding-bottom: 8px; }
+  .arch-node{
+    flex: 0 0 auto; min-width: 168px; text-align:center; padding: 20px 16px;
+    background: rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:14px;
+  }
+  .arch-node .n-icon{
+    width:38px; height:38px; margin:0 auto 12px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.35);
+  }
+  .arch-node .n-icon svg{ width:19px; height:19px; color:#c4b5fd; }
+  .arch-node h4{ font-size:13.5px; margin-bottom:5px; }
+  .arch-node span{ font-family: var(--font-mono); font-size:11px; color: var(--text-dimmer); }
+  .arch-arrow{ flex:0 0 auto; width:44px; display:flex; align-items:center; justify-content:center; color: var(--text-dimmer); }
+  .arch-note{ margin-top:28px; padding-top:24px; border-top:1px solid var(--border); display:flex; gap:12px; align-items:flex-start; }
+  .arch-note svg{ width:20px; height:20px; color: var(--green); flex-shrink:0; margin-top:2px; }
+  .arch-note p{ font-size:14px; color: var(--text-dim); }
+  .arch-note b{ color:var(--text); }
+
+  /* ---------- Roadmap ---------- */
+  .roadmap{ display:flex; flex-direction:column; gap:12px; }
+  .rm-row{
+    display:grid; grid-template-columns: 70px 1fr auto; gap:18px; align-items:center;
+    background: var(--card); border:1px solid var(--border); border-radius:14px; padding:18px 22px;
+  }
+  .rm-phase{ font-family: var(--font-mono); font-weight:700; color: var(--text-dimmer); font-size:13px; }
+  .rm-body h4{ font-size:15px; margin-bottom:4px; }
+  .rm-body p{ font-size:13.5px; color: var(--text-dim); }
+  .status{
+    font-family: var(--font-mono); font-size:11px; font-weight:600; padding:5px 12px; border-radius:999px;
+    white-space:nowrap; border:1px solid transparent;
+  }
+  .status-done{ background: rgba(52,211,153,0.12); color: var(--green); border-color: rgba(52,211,153,0.3); }
+  .status-progress{ background: rgba(251,191,36,0.12); color: var(--amber); border-color: rgba(251,191,36,0.3); }
+  .status-planned{ background: rgba(255,255,255,0.06); color: var(--text-dim); border-color: var(--border); }
+
+  .roadmap-cta{ text-align:center; margin-top:34px; }
+  .roadmap-cta p{ color: var(--text-dim); font-size:14px; margin-bottom:16px; }
+
+  /* ---------- Forms (newsletter + download) ---------- */
+  .form-card{
+    background: linear-gradient(160deg, rgba(139,92,246,0.09), rgba(37,99,235,0.06));
+    border: 1px solid var(--border); border-radius: 22px; padding: 48px;
+    position:relative; overflow:hidden;
+  }
+  .form-card::before{
+    content:""; position:absolute; width:340px; height:340px; border-radius:50%;
+    background: var(--violet); opacity:0.16; filter: blur(90px); top:-120px; right:-80px;
+  }
+  .form-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items:center; position:relative; }
+  .form-copy .eyebrow{ margin-bottom:12px; }
+  .form-copy h2{ font-size:30px; margin-bottom:14px; }
+  .form-copy p{ color: var(--text-dim); font-size:14.5px; margin-bottom: 0; }
+
+  .field-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  input[type=email]{
+    flex:1; min-width:200px; padding: 13px 16px; border-radius:11px; border:1px solid var(--border);
+    background: rgba(0,0,0,0.35); color: var(--text); font-size:14.5px; font-family: var(--font-sans);
+    outline:none; transition: border-color .2s ease;
+  }
+  input[type=email]:focus{ border-color: var(--violet); }
+  input[type=email]::placeholder{ color: var(--text-dimmer); }
+
+  .platform-toggle{ display:flex; gap:8px; margin-bottom:16px; }
+  .platform-btn{
+    flex:1; padding:12px 14px; border-radius:11px; border:1px solid var(--border);
+    background: rgba(255,255,255,0.02); color: var(--text-dim); font-size:13.5px; font-weight:600;
+    cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition: all .2s ease;
+  }
+  .platform-btn svg{ width:16px; height:16px; }
+  .platform-btn.active{ background: rgba(139,92,246,0.15); border-color: rgba(139,92,246,0.5); color:#fff; }
+  .platform-btn[disabled]{ opacity:0.4; cursor:not-allowed; }
+  .platform-btn .soon{ font-family: var(--font-mono); font-size:9.5px; background: rgba(255,255,255,0.08); padding:2px 6px; border-radius:6px; }
+
+  .fine-print{ font-size:12px; color: var(--text-dimmer); margin-top:12px; }
+  .fine-print a{ color: var(--text-dim); }
+
+  .success-box{
+    display:none; align-items:flex-start; gap:12px; padding:16px 18px; border-radius:12px;
+    background: rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.35); margin-top:14px;
+  }
+  .success-box.show{ display:flex; }
+  .success-box svg{ width:19px; height:19px; color: var(--green); flex-shrink:0; margin-top:1px; }
+  .success-box p{ font-size:13.5px; color:#d6f5e8; }
+  .success-box b{ color:#fff; }
+
+  /* ---------- Footer ---------- */
+  footer{ padding: 60px 0 34px; border-top:1px solid var(--border); }
+  .footer-grid{ display:grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap:40px; margin-bottom:48px; }
+  .footer-brand .brand{ margin-bottom:14px; }
+  .footer-brand p{ color:var(--text-dimmer); font-size:13.5px; max-width:260px; }
+  .footer-col h5{ font-size:12.5px; text-transform:uppercase; letter-spacing:0.6px; color: var(--text-dimmer); margin-bottom:16px; font-family: var(--font-mono); }
+  .footer-col a{ display:block; color: var(--text-dim); text-decoration:none; font-size:14px; margin-bottom:11px; transition: color .2s; }
+  .footer-col a:hover{ color: var(--text); }
+  .footer-bottom{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding-top:28px; border-top:1px solid var(--border); }
+  .footer-bottom p{ font-size:13px; color: var(--text-dimmer); }
+  .footer-bottom p a{ text-decoration:none; transition: color .2s; }
+  .footer-bottom p a:hover{ color: var(--text); }
+  .footer-social{ display:flex; gap:14px; }
+  .footer-social a{ color: var(--text-dimmer); transition: color .2s; }
+  .footer-social a:hover{ color: var(--text); }
+  .footer-social svg{ width:19px; height:19px; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 900px){
+    .nav-links{ display:none; }
+    .nav-mobile-toggle{ display:block; }
+    .hero-grid{ grid-template-columns: 1fr; }
+    h1{ font-size: 38px; }
+    .feature-grid{ grid-template-columns: repeat(2,1fr); }
+    .form-grid{ grid-template-columns: 1fr; gap:28px; }
+    .footer-grid{ grid-template-columns: 1fr 1fr; }
+    .trust-grid{ justify-content:flex-start; }
+  }
+  @media (max-width: 560px){
+    .feature-grid{ grid-template-columns: 1fr; }
+    .footer-grid{ grid-template-columns: 1fr; }
+    .rm-row{ grid-template-columns: 1fr; }
+    .rm-phase{ display:none; }
+    h1{ font-size:32px; }
+    .form-card{ padding:30px 22px; }
+    .hero{ padding-top: 56px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-fx"><div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div></div>
+
+<header>
+  <div class="wrap">
+    <nav>
+      <a href="#top" class="brand">
+        <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bg" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#2563EB"/>
+            </linearGradient>
+          </defs>
+          <rect x="0" y="0" width="1024" height="1024" rx="228" fill="url(#bg)"/>
+          <g fill="none" stroke="#ffffff" stroke-width="36" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="440" y="196" width="144" height="252" rx="72" fill="#ffffff" stroke="none"/>
+            <path d="M 372 420 A 140 140 0 0 0 652 420"/>
+            <line x1="512" y1="560" x2="512" y2="612"/>
+          </g>
+          <g fill="none" stroke="#ffffff" stroke-width="36" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="452,648 512,700 452,752"/>
+            <line x1="556" y1="752" x2="656" y2="752"/>
+          </g>
+        </svg>
+        Voice2Prompt
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How it Works</a>
+        <a href="#roadmap">Roadmap</a>
+        <a href="#newsletter">Newsletter</a>
+        <a href="https://github.com/anukool23/voice2prompt" target="_blank" rel="noopener">GitHub<svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></a>
+        <a href="https://www.anukool.me" target="_blank" rel="noopener">Developer<svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></a>
+      </div>
+      <div class="nav-cta">
+        <a class="btn btn-ghost btn-sm" href="https://github.com/anukool23/voice2prompt" target="_blank" rel="noopener">★ Star<svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></a>
+        <a class="btn btn-primary btn-sm" href="#download">Download</a>
+      </div>
+      <button class="nav-mobile-toggle" aria-label="menu">☰</button>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="pill"><span class="dot"></span> v0.6 · actively shipping new phases</span>
+        <h1>Dictation that never <span class="grad">leaves your machine.</span></h1>
+        <p class="lead">Voice2Prompt is a free, open-source, on-device voice dictation tool. Hold a key, speak, and your words land wherever your cursor is — transcribed and cleaned up entirely offline, on macOS and (soon) Windows.</p>
+        <div class="hero-actions">
+          <a href="#download" class="btn btn-primary">⤓ Get the Download Link</a>
+          <a href="https://github.com/anukool23/voice2prompt" target="_blank" rel="noopener" class="btn btn-ghost">View Source on GitHub<svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></a>
+        </div>
+        <div class="hero-meta">
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg> No network calls</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> &lt;300ms round trip</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> MIT licensed</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span></span><span></span><span></span>
+            <span class="terminal-title">voice2prompt — interactive</span>
+          </div>
+          <div class="terminal-body">
+            <div class="prompt-line"><span class="arrow">➜</span> ./bin/voice2prompt</div>
+            <div class="prompt-line" style="margin-bottom:2px;">Hold <b style="color:#e8e8f5">Ctrl+Option+Space</b>, speak, release…</div>
+            <div class="waveform" id="waveform"></div>
+            <div class="typed-line">📝 "<span id="typed"></span><span class="typed-cursor"></span>"</div>
+            <div class="result-line" id="resultLine">audio 2.1s | infer 190ms | TOTAL <b>260ms</b> | <span class="via">via accessibility</span> ✅ under 800ms</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRUST STRIP -->
+  <section class="trust" style="padding:34px 0;">
+    <div class="wrap trust-grid">
+      <div class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg> <span><b>100% on-device</b> — nothing leaves localhost</span></div>
+      <div class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12l6 6L20 6"/></svg> <span><b>whisper.cpp + Ollama</b> — no per-word API cost</span></div>
+      <div class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg> <span><b>Go engine</b> — macOS today, Windows in progress</span></div>
+      <div class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg> <span><b>Open source</b> — MIT, built in public</span></div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">Features</span>
+        <h2>Everything a premium cloud dictation app does — running on your machine</h2>
+        <p>Voice2Prompt ships fast because every layer is a swappable local sidecar. New capabilities land every release.</p>
+      </div>
+      <div class="feature-grid">
+
+        <div class="card reveal">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 1a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V5a4 4 0 0 0-4-4z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></svg></div>
+          <h3>Local speech-to-text</h3>
+          <p>A whisper.cpp sidecar runs over localhost HTTP, keeping the model resident so every utterance skips reload time. Sub-second latency, zero cloud round-trip.</p>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg></div>
+          <h3>LLM cleanup</h3>
+          <p>A local Ollama model fixes punctuation, drops filler words, and adapts tone per app — casual for Slack, professional for Mail and Docs. Falls back to raw transcription if Ollama's off.</p>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 17l6-6-6-6M12 19h8"/></svg></div>
+          <h3>Smart text injection</h3>
+          <p>Inserts at the caret via macOS's Accessibility API, and automatically falls back to clipboard + ⌘V for apps — like Slack, Notion, VS Code — that reject AX insertion.</p>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 18V5l12-2v13M9 9l12-2M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM21 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg></div>
+          <h3>Voice commands</h3>
+          <p>"Select all," "make this formal," "shorten this" — rule-based editing runs instantly, and rewrite commands hand your current selection to the LLM and replace it in place.</p>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/></svg></div>
+          <h3>Fn-key or hotkey trigger</h3>
+          <p>Hold the 🌐 Fn key for push-to-talk, double-tap for hands-free, or bind a classic hotkey chord like Ctrl+Option+Space — no extra permission required.</p>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.2" fill="#fff" stroke="none"/><circle cx="8" cy="12" r="1.2" fill="#fff" stroke="none"/><circle cx="8" cy="16" r="1.2" fill="#fff" stroke="none"/></svg></div>
+          <h3>Native menu-bar app</h3>
+          <p>Self-contained, ad-hoc signed .app with a menu-bar tray (Open / Start-Stop / Quit) and launch-at-login — one permission grant, no child-process mess.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS / ARCHITECTURE -->
+  <section id="how-it-works">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">Architecture</span>
+        <h2>One pipeline, all of it on localhost</h2>
+        <p>Every stage — capture, transcription, cleanup, injection — talks over 127.0.0.1. Nothing you say is sent anywhere.</p>
+      </div>
+
+      <div class="arch reveal">
+        <div class="arch-flow">
+          <div class="arch-node">
+            <div class="n-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/></svg></div>
+            <h4>Hotkey</h4><span>Fn / Carbon chord</span>
+          </div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-node">
+            <div class="n-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V5a4 4 0 0 0-4-4z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/></svg></div>
+            <h4>Mic capture</h4><span>malgo · 16kHz mono</span>
+          </div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-node">
+            <div class="n-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+            <h4>whisper-server</h4><span>POST /inference</span>
+          </div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-node">
+            <div class="n-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg></div>
+            <h4>Ollama</h4><span>POST /api/chat</span>
+          </div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-node">
+            <div class="n-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-6-6-6M12 19h8"/></svg></div>
+            <h4>Inject</h4><span>AX insert / ⌘V</span>
+          </div>
+        </div>
+        <div class="arch-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg>
+          <p><b>Both the STT and LLM engines are local HTTP sidecars on 127.0.0.1.</b> The Go core (<code style="font-family:var(--font-mono)">cmd/voice2prompt</code>) shares config and engine code with the Wails desktop app, so the CLI and the menu-bar app behave identically.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section id="roadmap">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">Roadmap</span>
+        <h2>Built in the open, shipping phase by phase</h2>
+        <p>This is early — and that's the point. Star the repo or subscribe below to catch new releases as each phase lands.</p>
+      </div>
+
+      <div class="roadmap reveal">
+        <div class="rm-row">
+          <span class="rm-phase">P0</span>
+          <div class="rm-body"><h4>Feasibility spike</h4><p>Hotkey → record → whisper → paste, latency measured end-to-end.</p></div>
+          <span class="status status-done">✓ Shipped</span>
+        </div>
+        <div class="rm-row">
+          <span class="rm-phase">P1</span>
+          <div class="rm-body"><h4>macOS text injection</h4><p>Accessibility-API caret insert with clipboard fallback.</p></div>
+          <span class="status status-done">✓ Shipped</span>
+        </div>
+        <div class="rm-row">
+          <span class="rm-phase">P2</span>
+          <div class="rm-body"><h4>Local LLM cleanup</h4><p>Punctuation, filler removal, context-aware tone via Ollama.</p></div>
+          <span class="status status-done">✓ Shipped</span>
+        </div>
+        <div class="rm-row">
+          <span class="rm-phase">P3</span>
+          <div class="rm-body"><h4>Wails settings app</h4><p>Onboarding, permissions, hotkey + dictionary editor.</p></div>
+          <span class="status status-progress">◐ In progress</span>
+        </div>
+        <div class="rm-row">
+          <span class="rm-phase">P4</span>
+          <div class="rm-body"><h4>Windows port</h4><p>UI Automation-based injection for Windows.</p></div>
+          <span class="status status-planned">○ Planned</span>
+        </div>
+        <div class="rm-row">
+          <span class="rm-phase">P5</span>
+          <div class="rm-body"><h4>Command mode</h4><p>Editing keystrokes + LLM rewrite of your current selection.</p></div>
+          <span class="status status-progress">◐ In progress</span>
+        </div>
+        <div class="rm-row">
+          <span class="rm-phase">P6</span>
+          <div class="rm-body"><h4>Packaging</h4><p>Self-contained .app, menu-bar tray, launch-at-login.</p></div>
+          <span class="status status-progress">◐ In progress</span>
+        </div>
+      </div>
+
+      <div class="roadmap-cta reveal">
+        <p>New phases ship as releases — the fastest way to know is the newsletter below, or watch the repo on GitHub.</p>
+        <a href="#newsletter" class="btn btn-ghost">Get notified about new releases</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD (email required) -->
+  <section id="download">
+    <div class="wrap">
+      <div class="form-card reveal">
+        <div class="form-grid">
+          <div class="form-copy">
+            <span class="eyebrow">Download</span>
+            <h2>Get Voice2Prompt</h2>
+            <p>Builds are hand-packaged right now, so we email the current download link instead of hosting a public button — that way you always get a working link plus a heads-up when a new build replaces it. Grab the source anytime from <a href="https://github.com/anukool23/voice2prompt/releases" target="_blank" rel="noopener" style="color:#c4b5fd;">GitHub Releases<svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></a>.</p>
+          </div>
+
+          <div>
+            <div class="platform-toggle">
+              <button type="button" class="platform-btn active" data-platform="mac">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.4-2.8-1.233-1.8-2.235-4.6-2.235-7.26 0-4.26 2.77-6.52 5.5-6.52 1.4 0 2.57.92 3.45.92.84 0 2.16-.98 3.76-.98.61 0 2.81.06 4.26 2.13-.11.07-2.54 1.48-2.51 4.42.03 3.51 3.08 4.68 3.11 4.7-.02.07-.49 1.66-1.57 3.28z"/></svg>
+                macOS
+              </button>
+              <button type="button" class="platform-btn" data-platform="win" disabled>
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5L10 4.5V11.5H3V5.5M11 4.35L21 3V11.5H11V4.35M3 12.5H10V19.5L3 18.5V12.5M11 12.5H21V21L11 19.65V12.5Z"/></svg>
+                Windows <span class="soon">Phase 4</span>
+              </button>
+            </div>
+
+            <form id="downloadForm" name="download" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+              <input type="hidden" name="form-name" value="download">
+              <input type="hidden" name="platform" id="platformField" value="mac">
+              <p style="display:none;"><label>Don't fill this out: <input name="bot-field"></label></p>
+              <div class="field-row">
+                <input type="email" name="email" id="downloadEmail" placeholder="you@example.com" required>
+                <button type="submit" class="btn btn-primary">Email me the link</button>
+              </div>
+              <p class="fine-print">Required — we send the current build link straight to your inbox. We'll also let you know about major new releases. No spam, unsubscribe anytime.</p>
+            </form>
+
+            <div class="success-box" id="downloadSuccess">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+              <p><b>Check your inbox.</b> We've sent the macOS download link to <span id="downloadEmailEcho"></span>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NEWSLETTER -->
+  <section id="newsletter">
+    <div class="wrap">
+      <div class="form-card reveal" style="text-align:center;">
+        <div style="max-width:560px; margin:0 auto; position:relative;">
+          <span class="eyebrow">Stay in the loop</span>
+          <h2 style="font-size:30px;">New phases ship often. Don't miss one.</h2>
+          <p style="color:var(--text-dim); font-size:14.5px; margin-bottom:26px;">One email per release — Windows support, command mode, packaging updates, and whatever we build next.</p>
+
+          <form id="newsletterForm" name="newsletter" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+            <input type="hidden" name="form-name" value="newsletter">
+            <p style="display:none;"><label>Don't fill this out: <input name="bot-field"></label></p>
+            <div class="field-row" style="max-width:460px; margin:0 auto;">
+              <input type="email" name="email" id="newsletterEmail" placeholder="you@example.com" required>
+              <button type="submit" class="btn btn-primary">Subscribe</button>
+            </div>
+          </form>
+          <div class="success-box" id="newsletterSuccess" style="margin: 14px auto 0; max-width:460px; text-align:left;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+            <p><b>You're in.</b> Watch for the next release note at <span id="newsletterEmailEcho"></span>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="#top" class="brand">
+          <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+            <defs><linearGradient id="bgf" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#2563EB"/></linearGradient></defs>
+            <rect x="0" y="0" width="1024" height="1024" rx="228" fill="url(#bgf)"/>
+            <g fill="none" stroke="#ffffff" stroke-width="36" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="440" y="196" width="144" height="252" rx="72" fill="#ffffff" stroke="none"/>
+              <path d="M 372 420 A 140 140 0 0 0 652 420"/><line x1="512" y1="560" x2="512" y2="612"/>
+            </g>
+            <g fill="none" stroke="#ffffff" stroke-width="36" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="452,648 512,700 452,752"/><line x1="556" y1="752" x2="656" y2="752"/>
+            </g>
+          </svg>
+          Voice2Prompt
+        </a>
+        <p>An open-source, on-device voice-dictation tool for macOS + Windows. Go + whisper.cpp + Ollama + Wails/React.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Project</h5>
+        <a href="https://github.com/anukool23/voice2prompt" target="_blank" rel="noopener">GitHub<svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></a>
+        <a href="https://github.com/anukool23/voice2prompt/issues" target="_blank" rel="noopener">Issues<svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></a>
+        <a href="https://github.com/anukool23/voice2prompt/discussions" target="_blank" rel="noopener">Discussions<svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></a>
+        <a href="https://github.com/anukool23/voice2prompt/blob/main/LICENSE" target="_blank" rel="noopener">MIT License<svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></a>
+      </div>
+      <div class="footer-col">
+        <h5>Docs</h5>
+        <a href="#how-it-works">Architecture</a>
+        <a href="#roadmap">Roadmap</a>
+        <a href="https://github.com/anukool23/voice2prompt#readme" target="_blank" rel="noopener">README<svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></a>
+        <a href="https://github.com/anukool23/voice2prompt/blob/main/flow-clone-implementation-plan.md" target="_blank" rel="noopener">Implementation plan<svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></a>
+      </div>
+      <div class="footer-col">
+        <h5>Get it</h5>
+        <a href="#download">Download</a>
+        <a href="#newsletter">Newsletter</a>
+        <a href="https://github.com/anukool23/voice2prompt/releases" target="_blank" rel="noopener">Releases<svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© <span id="year"></span> Voice2Prompt. Built in the open, MIT licensed. · Built by <a href="https://www.anukool.me" target="_blank" rel="noopener" style="color:var(--text-dim);">Anukool<svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></a></p>
+      <div class="footer-social">
+        <a href="https://github.com/anukool23/voice2prompt" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.57.1.78-.25.78-.55 0-.27-.01-1.16-.02-2.11-3.2.7-3.87-1.36-3.87-1.36-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.56-.29-5.26-1.28-5.26-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.7 5.4-5.28 5.69.42.36.78 1.07.78 2.16 0 1.56-.01 2.82-.01 3.2 0 .31.2.66.79.55A10.52 10.52 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // ---- Terminal typing demo ----
+  const demoText = "hello world this is a test";
+  const typedEl = document.getElementById('typed');
+  const resultLine = document.getElementById('resultLine');
+  const waveform = document.getElementById('waveform');
+
+  for(let i=0;i<28;i++){
+    const bar = document.createElement('i');
+    bar.style.height = (10 + Math.random()*24) + 'px';
+    bar.style.animationDelay = (Math.random()*1.1).toFixed(2) + 's';
+    bar.style.animationDuration = (0.7 + Math.random()*0.8).toFixed(2) + 's';
+    waveform.appendChild(bar);
+  }
+
+  function runTypingDemo(){
+    typedEl.textContent = '';
+    resultLine.classList.remove('show');
+    let i = 0;
+    const iv = setInterval(() => {
+      typedEl.textContent += demoText[i];
+      i++;
+      if(i >= demoText.length){
+        clearInterval(iv);
+        setTimeout(() => resultLine.classList.add('show'), 300);
+        setTimeout(runTypingDemo, 4200);
+      }
+    }, 55);
+  }
+  setTimeout(runTypingDemo, 700);
+
+  // ---- Scroll reveal ----
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // ---- Platform toggle ----
+  const platformBtns = document.querySelectorAll('.platform-btn');
+  const platformField = document.getElementById('platformField');
+  platformBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(btn.disabled) return;
+      platformBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      platformField.value = btn.dataset.platform;
+    });
+  });
+
+  // ---- Netlify-friendly AJAX form submission ----
+  function encode(data) {
+    return Object.keys(data).map(key => encodeURIComponent(key) + '=' + encodeURIComponent(data[key])).join('&');
+  }
+
+  function wireForm(formId, successId, echoId){
+    const form = document.getElementById(formId);
+    const success = document.getElementById(successId);
+    const echo = echoId ? document.getElementById(echoId) : null;
+    if(!form) return;
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      const emailInput = form.querySelector('input[type=email]');
+      const emailVal = emailInput ? emailInput.value : '';
+      const data = {};
+      new FormData(form).forEach((v,k) => data[k] = v);
+
+      fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: encode(data)
+      }).catch(() => { /* static preview / no backend yet — fail silently, still show success UI */ })
+      .finally(() => {
+        if(echo) echo.textContent = emailVal;
+        form.style.display = 'none';
+        if(success) success.classList.add('show');
+      });
+    });
+  }
+
+  wireForm('downloadForm', 'downloadSuccess', 'downloadEmailEcho');
+  wireForm('newsletterForm', 'newsletterSuccess', 'newsletterEmailEcho');
+</script>
+
+</body>
+</html>

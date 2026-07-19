@@ -1,0 +1,16 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "Voice2Prompt",
+  "outputfilename": "Voice2Prompt",
+  "frontend:install": "",
+  "frontend:build": "",
+  "wailsjsdir": "./frontend",
+  "author": {
+    "name": "Voice2Prompt"
+  },
+  "info": {
+    "productName": "Voice2Prompt",
+    "productVersion": "0.3.0",
+    "comments": "On-device voice dictation"
+  }
+}
